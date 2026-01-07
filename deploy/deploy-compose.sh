@@ -129,6 +129,17 @@ deploy() {
     log_step "Pulling latest image..."
     $SUDO docker compose pull
     
+    # Stop and remove existing containers to avoid conflicts
+    log_step "Stopping existing services (if any)..."
+    $SUDO docker compose down 2>/dev/null || true
+    
+    # Also remove any standalone container with the same name
+    if $SUDO docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        log_info "Removing existing container: $CONTAINER_NAME"
+        $SUDO docker stop "$CONTAINER_NAME" 2>/dev/null || true
+        $SUDO docker rm "$CONTAINER_NAME" 2>/dev/null || true
+    fi
+    
     log_step "Starting services..."
     $SUDO docker compose up -d
     

@@ -417,6 +417,49 @@ deploy_service() {
     esac
 }
 
+# Cleanup existing installation
+cleanup_existing() {
+    local container_name="${CONTAINER_NAME:-gen-gateway}"
+    
+    log_step "Checking for existing installation..."
+    
+    # Stop and remove existing container if it exists
+    if $SUDO docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^${container_name}$"; then
+        log_warn "Found existing container '$container_name'. Removing..."
+        $SUDO docker stop "$container_name" 2>/dev/null || true
+        $SUDO docker rm "$container_name" 2>/dev/null || true
+        log_info "Existing container removed"
+    fi
+    
+    # Clean up existing install directory if it exists and has old files
+    if [[ -d "$INSTALL_DIR" ]]; then
+        if [[ -f "$INSTALL_DIR/deploy-docker.sh" ]] || [[ -f "$INSTALL_DIR/deploy-compose.sh" ]]; then
+            log_warn "Found existing installation at $INSTALL_DIR"
+            
+            # Try to stop services if compose is being used
+            if [[ -f "$INSTALL_DIR/docker-compose.yml" ]]; then
+                log_info "Stopping existing compose services..."
+                (cd "$INSTALL_DIR" && $SUDO docker compose down 2>/dev/null) || true
+            fi
+            
+            # Backup config if exists
+            if [[ -d "$INSTALL_DIR/config" ]]; then
+                log_info "Backing up existing configuration..."
+                cp -r "$INSTALL_DIR/config" "/tmp/gen-gateway-config-backup-$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
+            fi
+            
+            log_info "Cleaning up old installation files..."
+            rm -f "$INSTALL_DIR/deploy-docker.sh" 2>/dev/null || true
+            rm -f "$INSTALL_DIR/deploy-compose.sh" 2>/dev/null || true
+            rm -f "$INSTALL_DIR/docker-compose.yml" 2>/dev/null || true
+            rm -f "$INSTALL_DIR/setup-backends.sh" 2>/dev/null || true
+            rm -f "$INSTALL_DIR/.env" 2>/dev/null || true
+        fi
+    fi
+    
+    log_info "Cleanup complete"
+}
+
 main() {
     show_banner
     
@@ -458,6 +501,9 @@ main() {
             fi
         fi
     fi
+    
+    # Cleanup existing installation
+    cleanup_existing
     
     # Create install directory
     log_step "Creating install directory: $INSTALL_DIR"

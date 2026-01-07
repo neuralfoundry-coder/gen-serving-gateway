@@ -120,11 +120,20 @@ pull_image() {
 }
 
 stop_existing() {
+    # Force remove any existing container with the same name
     if $SUDO docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-        log_step "Stopping existing container..."
+        log_step "Stopping and removing existing container..."
         $SUDO docker stop "$CONTAINER_NAME" 2>/dev/null || true
-        $SUDO docker rm "$CONTAINER_NAME" 2>/dev/null || true
+        $SUDO docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
         log_info "Existing container removed"
+    fi
+    
+    # Also check for any containers using the same port
+    local port_in_use=$($SUDO docker ps --format '{{.Names}}' --filter "publish=${HOST_PORT}" 2>/dev/null | head -1)
+    if [[ -n "$port_in_use" ]]; then
+        log_warn "Port ${HOST_PORT} is in use by container: $port_in_use"
+        log_info "Stopping container using the port..."
+        $SUDO docker stop "$port_in_use" 2>/dev/null || true
     fi
 }
 

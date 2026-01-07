@@ -269,17 +269,42 @@ cargo build --features grpc-codegen
 
 ## Docker 배포
 
-### Docker Hub에서 이미지 가져오기
+### One-Line 설치 (Ubuntu 24.xx)
+
+서버에서 한 줄 명령어로 즉시 배포할 수 있습니다:
+
+```bash
+# Docker Compose 방식 (권장)
+curl -fsSL https://raw.githubusercontent.com/neuralfoundry-coder/generative-img-serving/main/deploy/quick-install.sh | bash -s compose
+
+# Docker 직접 실행 방식
+curl -fsSL https://raw.githubusercontent.com/neuralfoundry-coder/generative-img-serving/main/deploy/quick-install.sh | bash -s docker
+```
+
+**옵션:**
+
+```bash
+# 포트 변경
+curl -fsSL .../quick-install.sh | HOST_PORT=9090 bash -s compose
+
+# 설치 경로 변경
+curl -fsSL .../quick-install.sh | INSTALL_DIR=/opt/img-serving bash -s compose
+
+# 특정 버전 설치
+curl -fsSL .../quick-install.sh | IMAGE_TAG=0.2.0 bash -s compose
+```
+
+### Docker Hub 이미지
 
 ```bash
 # 최신 버전
-docker pull your-username/generative-img-serving:latest
+docker pull neuralfoundry2coder/generative-img-serving:latest
 
 # 특정 버전
-docker pull your-username/generative-img-serving:0.1.0
+docker pull neuralfoundry2coder/generative-img-serving:0.2.0
 ```
 
-### Docker로 실행
+### 수동 Docker 실행
 
 ```bash
 docker run -d \
@@ -288,10 +313,37 @@ docker run -d \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/generated_images:/app/generated_images \
   -e RUST_LOG=info \
-  your-username/generative-img-serving:latest
+  --restart unless-stopped \
+  neuralfoundry2coder/generative-img-serving:latest
 ```
 
-### 로컬에서 Docker 이미지 빌드
+### Docker Compose
+
+```yaml
+# docker-compose.yml
+services:
+  img-serving:
+    image: neuralfoundry2coder/generative-img-serving:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/app/config:ro
+      - ./generated_images:/app/generated_images
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+```bash
+docker compose up -d
+```
+
+### 로컬 빌드
 
 ```bash
 # 이미지 빌드
@@ -301,45 +353,44 @@ docker build -t generative-img-serving .
 docker run -d -p 8080:8080 generative-img-serving
 ```
 
+---
+
+## 릴리스 및 배포 (개발자용)
+
 ### 배포 스크립트 (`scripts/deploy.sh`)
 
 통합 배포 스크립트를 통해 Docker Hub에 이미지를 배포할 수 있습니다.
 
 #### 1. 직접 푸시 모드 (Direct)
 
-로컬에서 직접 Docker 이미지를 빌드하고 Docker Hub에 푸시합니다.
-
 ```bash
 # .env 파일 설정 (최초 1회)
 cp .env.example .env
-# DOCKER_HUB_USERNAME, DOCKER_HUB_TOKEN 설정
 
 # 빌드 및 푸시
 ./scripts/deploy.sh direct
 
 # 특정 버전으로 푸시
 ./scripts/deploy.sh direct -v 1.0.0
-
-# 빌드만 (푸시 없이)
-./scripts/deploy.sh direct -b
 ```
 
 #### 2. 릴리스 모드 (Release via GitHub Actions)
 
-Git 태그를 생성하고 GitHub Actions를 통해 자동 배포합니다.
-
 ```bash
-# Cargo.toml 버전으로 태그 생성
+# Interactive 버전 선택 + 자동 커밋/푸시/태그
 ./scripts/deploy.sh release
 
-# 특정 버전으로 릴리스
+# 버전 선택 화면:
+#   [1] Major  : v0.2.0 → v1.0.0  (Breaking changes)
+#   [2] Minor  : v0.2.0 → v0.3.0  (New features)
+#   [3] Patch  : v0.2.0 → v0.2.1  (Bug fixes)
+#   [4] Custom : Enter custom version
+
+# 특정 버전으로 릴리스 (질의 없음)
 ./scripts/deploy.sh release -v 1.0.0
 
-# 드라이런 (실제 실행 없이 확인)
+# 드라이런
 ./scripts/deploy.sh release -d
-
-# 기존 태그 덮어쓰기
-./scripts/deploy.sh release -f
 ```
 
 ### GitHub Actions 설정

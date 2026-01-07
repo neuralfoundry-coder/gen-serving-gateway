@@ -6,6 +6,14 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Set sudo if not root and docker requires it
+SUDO=""
+if [[ $EUID -ne 0 ]]; then
+    if ! docker info &> /dev/null 2>&1; then
+        SUDO="sudo"
+    fi
+fi
+
 # Configuration
 export IMAGE_TAG="${IMAGE_TAG:-latest}"
 export CONTAINER_NAME="${CONTAINER_NAME:-gen-gateway}"
@@ -38,12 +46,12 @@ check_docker() {
         exit 1
     fi
     
-    if ! docker compose version &> /dev/null; then
+    if ! $SUDO docker compose version &> /dev/null; then
         log_error "Docker Compose is not installed."
         exit 1
     fi
     
-    if ! docker info &> /dev/null; then
+    if ! $SUDO docker info &> /dev/null; then
         log_error "Docker daemon is not running."
         exit 1
     fi
@@ -119,10 +127,10 @@ deploy() {
     create_env_file
     
     log_step "Pulling latest image..."
-    docker compose pull
+    $SUDO docker compose pull
     
     log_step "Starting services..."
-    docker compose up -d
+    $SUDO docker compose up -d
     
     log_step "Waiting for service to be healthy..."
     local max_attempts=30
@@ -147,7 +155,7 @@ show_status() {
     echo -e "${GREEN}  Deployment Complete!${NC}"
     echo -e "${GREEN}============================================${NC}"
     echo ""
-    docker compose ps
+    $SUDO docker compose ps
     echo ""
     echo "Health Check:"
     curl -s "http://localhost:${HOST_PORT}/health" 2>/dev/null || echo "  (waiting...)"
@@ -200,40 +208,40 @@ main() {
             deploy
             ;;
         up)
-            docker compose up -d
+            $SUDO docker compose up -d
             ;;
         down)
-            docker compose down
+            $SUDO docker compose down
             log_info "Services stopped and removed"
             ;;
         stop)
-            docker compose stop
+            $SUDO docker compose stop
             log_info "Services stopped"
             ;;
         start)
-            docker compose start
+            $SUDO docker compose start
             log_info "Services started"
             ;;
         restart)
-            docker compose restart
+            $SUDO docker compose restart
             log_info "Services restarted"
             ;;
         logs)
-            docker compose logs -f
+            $SUDO docker compose logs -f
             ;;
         status)
-            docker compose ps
+            $SUDO docker compose ps
             echo ""
             curl -s "http://localhost:${HOST_PORT}/health" 2>/dev/null || echo "Service not responding"
             ;;
         pull)
-            docker compose pull
+            $SUDO docker compose pull
             log_info "Image pulled"
             ;;
         update)
             log_step "Updating service..."
-            docker compose pull
-            docker compose up -d
+            $SUDO docker compose pull
+            $SUDO docker compose up -d
             log_info "Service updated"
             ;;
         -h|--help|help)

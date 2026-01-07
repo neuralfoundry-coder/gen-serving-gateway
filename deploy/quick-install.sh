@@ -122,15 +122,15 @@ check_docker_installed() {
 }
 
 check_docker_running() {
-    if docker info &> /dev/null; then
+    if $SUDO docker info &> /dev/null; then
         return 0
     fi
     return 1
 }
 
 check_docker_compose() {
-    if docker compose version &> /dev/null; then
-        COMPOSE_VERSION=$(docker compose version --short 2>/dev/null)
+    if $SUDO docker compose version &> /dev/null; then
+        COMPOSE_VERSION=$($SUDO docker compose version --short 2>/dev/null)
         log_info "Docker Compose is installed: v$COMPOSE_VERSION"
         return 0
     fi

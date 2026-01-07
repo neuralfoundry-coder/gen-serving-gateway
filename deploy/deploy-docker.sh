@@ -6,6 +6,14 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Set sudo if not root and docker requires it
+SUDO=""
+if [[ $EUID -ne 0 ]]; then
+    if ! docker info &> /dev/null 2>&1; then
+        SUDO="sudo"
+    fi
+fi
+
 # Configuration
 IMAGE_NAME="neuralfoundry2coder/gen-serving-gateway"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
@@ -43,7 +51,7 @@ check_docker() {
         exit 1
     fi
     
-    if ! docker info &> /dev/null; then
+    if ! $SUDO docker info &> /dev/null; then
         log_error "Docker daemon is not running or you don't have permission."
         log_info "Try: sudo systemctl start docker"
         log_info "Or:  newgrp docker"
@@ -107,15 +115,15 @@ EOF
 
 pull_image() {
     log_step "Pulling Docker image: $IMAGE_NAME:$IMAGE_TAG"
-    docker pull "$IMAGE_NAME:$IMAGE_TAG"
+    $SUDO docker pull "$IMAGE_NAME:$IMAGE_TAG"
     log_info "Image pulled successfully"
 }
 
 stop_existing() {
-    if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    if $SUDO docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
         log_step "Stopping existing container..."
-        docker stop "$CONTAINER_NAME" 2>/dev/null || true
-        docker rm "$CONTAINER_NAME" 2>/dev/null || true
+        $SUDO docker stop "$CONTAINER_NAME" 2>/dev/null || true
+        $SUDO docker rm "$CONTAINER_NAME" 2>/dev/null || true
         log_info "Existing container removed"
     fi
 }
@@ -123,7 +131,7 @@ stop_existing() {
 run_container() {
     log_step "Starting container..."
     
-    docker run -d \
+    $SUDO docker run -d \
         --name "$CONTAINER_NAME" \
         -p "${HOST_PORT}:${CONTAINER_PORT}" \
         -v "${CONFIG_DIR}:/app/config:ro" \
@@ -233,27 +241,27 @@ main() {
             show_status
             ;;
         stop)
-            docker stop "$CONTAINER_NAME"
+            $SUDO docker stop "$CONTAINER_NAME"
             log_info "Container stopped"
             ;;
         start)
-            docker start "$CONTAINER_NAME"
+            $SUDO docker start "$CONTAINER_NAME"
             log_info "Container started"
             ;;
         restart)
-            docker restart "$CONTAINER_NAME"
+            $SUDO docker restart "$CONTAINER_NAME"
             log_info "Container restarted"
             ;;
         logs)
-            docker logs -f "$CONTAINER_NAME"
+            $SUDO docker logs -f "$CONTAINER_NAME"
             ;;
         status)
-            docker ps -a --filter "name=$CONTAINER_NAME"
+            $SUDO docker ps -a --filter "name=$CONTAINER_NAME"
             echo ""
             curl -s "http://localhost:${HOST_PORT}/health" 2>/dev/null || echo "Service not responding"
             ;;
         remove)
-            docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+            $SUDO docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
             log_info "Container removed"
             ;;
         -h|--help|help)

@@ -1,0 +1,73 @@
+# Test environment configuration
+
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[auth]
+enabled = true
+api_keys = ["test-api-key-1", "test-api-key-2"]
+
+[rate_limit]
+enabled = true
+requests_per_second = 1000
+burst_size = 2000
+
+[storage]
+base_path = "./generated_images"
+url_prefix = "http://localhost:8080/images"
+
+[logging]
+level = "debug"
+format = "json"
+
+# Test backends configuration
+[[backends]]
+name = "http-mock-1"
+protocol = "http"
+endpoints = ["http://http-mock-1:8000"]
+health_check_path = "/health"
+health_check_interval_secs = 10
+timeout_ms = 30000
+weight = 1
+enabled = true
+
+[[backends]]
+name = "http-mock-2"
+protocol = "http"
+endpoints = ["http://http-mock-2:8000"]
+health_check_path = "/health"
+health_check_interval_secs = 10
+timeout_ms = 30000
+weight = 1
+enabled = true
+
+[[backends]]
+name = "slow-backend"
+protocol = "http"
+endpoints = ["http://slow-mock:8000"]
+health_check_path = "/health"
+health_check_interval_secs = 10
+timeout_ms = 60000
+weight = 1
+enabled = true
+
+[[backends]]
+name = "failure-backend"
+protocol = "http"
+endpoints = ["http://failure-mock:8000"]
+health_check_path = "/health"
+health_check_interval_secs = 10
+timeout_ms = 30000
+weight = 1
+enabled = true
+
+[[backends]]
+name = "grpc-backend"
+protocol = "grpc"
+endpoints = ["http://grpc-mock:50051"]
+health_check_interval_secs = 10
+timeout_ms = 30000
+weight = 1
+enabled = true
+

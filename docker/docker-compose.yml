@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # Main gateway service
+  gateway:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - IMG_SERVING__SERVER__PORT=8080
+      - IMG_SERVING__AUTH__ENABLED=true
+      - IMG_SERVING__AUTH__API_KEYS=test-api-key-1,test-api-key-2
+      - RUST_LOG=info
+    volumes:
+      - ../config:/app/config:ro
+      - gateway-images:/app/generated_images
+    depends_on:
+      - http-mock-1
+      - http-mock-2
+      - slow-mock
+      - failure-mock
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # HTTP Mock Backend 1 - Fast responses
+  http-mock-1:
+    build:
+      context: ./mock-backends/http-mock
+    ports:
+      - "7860:8000"
+    environment:
+      - MOCK_NAME=http-backend-1
+      - RESPONSE_DELAY_MIN=50
+      - RESPONSE_DELAY_MAX=100
+      - ERROR_RATE=0
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # HTTP Mock Backend 2 - Fast responses
+  http-mock-2:
+    build:
+      context: ./mock-backends/http-mock
+    ports:
+      - "7861:8000"
+    environment:
+      - MOCK_NAME=http-backend-2
+      - RESPONSE_DELAY_MIN=50
+      - RESPONSE_DELAY_MAX=100
+      - ERROR_RATE=0
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Slow Mock Backend - Simulates slow responses
+  slow-mock:
+    build:
+      context: ./mock-backends/http-mock
+    ports:
+      - "7862:8000"
+    environment:
+      - MOCK_NAME=slow-backend
+      - RESPONSE_DELAY_MIN=2000
+      - RESPONSE_DELAY_MAX=5000
+      - ERROR_RATE=0
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  # Failure Mock Backend - Simulates errors
+  failure-mock:
+    build:
+      context: ./mock-backends/http-mock
+    ports:
+      - "7863:8000"
+    environment:
+      - MOCK_NAME=failure-backend
+      - RESPONSE_DELAY_MIN=100
+      - RESPONSE_DELAY_MAX=500
+      - ERROR_RATE=30
+      - TIMEOUT_RATE=10
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # gRPC Mock Backend
+  grpc-mock:
+    build:
+      context: ./mock-backends/grpc-mock
+    ports:
+      - "50051:50051"
+    environment:
+      - MOCK_NAME=grpc-backend
+      - RESPONSE_DELAY_MIN=50
+      - RESPONSE_DELAY_MAX=150
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  gateway-images:
+

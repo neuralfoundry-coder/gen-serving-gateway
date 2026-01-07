@@ -1,0 +1,45 @@
+# Generative Image Serving Framework Configuration
+
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[auth]
+enabled = true
+api_keys = ["sk-test-key-1", "sk-test-key-2"]
+
+[rate_limit]
+enabled = true
+requests_per_second = 100
+burst_size = 200
+
+[storage]
+# Local file storage configuration
+base_path = "./generated_images"
+# URL prefix for serving stored images
+url_prefix = "http://localhost:8080/images"
+
+[logging]
+level = "info"
+format = "json"  # "json" or "pretty"
+
+# Backend configurations
+[[backends]]
+name = "stable-diffusion"
+protocol = "http"
+endpoints = ["http://localhost:7860"]
+health_check_path = "/health"
+health_check_interval_secs = 30
+timeout_ms = 60000
+weight = 1
+enabled = true
+
+[[backends]]
+name = "custom-model"
+protocol = "grpc"
+endpoints = ["http://localhost:50051"]
+health_check_interval_secs = 30
+timeout_ms = 60000
+weight = 1
+enabled = true
+

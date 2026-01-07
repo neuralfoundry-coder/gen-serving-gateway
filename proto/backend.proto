@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package imagebackend;
+
+// Image generation backend service
+service ImageBackendService {
+    // Generate images from a text prompt
+    rpc Generate(GenerateRequest) returns (GenerateResponse);
+    
+    // Health check endpoint
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+    
+    // Get backend information
+    rpc GetInfo(GetInfoRequest) returns (GetInfoResponse);
+}
+
+// Image generation request
+message GenerateRequest {
+    // The prompt to generate images from
+    string prompt = 1;
+    
+    // Negative prompt (things to avoid in generation)
+    string negative_prompt = 2;
+    
+    // Number of images to generate
+    int32 n = 3;
+    
+    // Image width
+    int32 width = 4;
+    
+    // Image height
+    int32 height = 5;
+    
+    // Model identifier (optional, uses default if not specified)
+    string model = 6;
+    
+    // Random seed for reproducibility (-1 for random)
+    int64 seed = 7;
+    
+    // Guidance scale (CFG scale)
+    float guidance_scale = 8;
+    
+    // Number of inference steps
+    int32 num_inference_steps = 9;
+    
+    // Response format: "b64_json", "url", or "file"
+    string response_format = 10;
+    
+    // Additional parameters as JSON string
+    string extra_params = 11;
+}
+
+// Generated image data
+message ImageData {
+    // Base64 encoded image (when response_format is b64_json)
+    string b64_json = 1;
+    
+    // URL to the generated image (when response_format is url)
+    string url = 2;
+    
+    // Revised prompt (if model modified the prompt)
+    string revised_prompt = 3;
+    
+    // Seed used for generation
+    int64 seed = 4;
+}
+
+// Image generation response
+message GenerateResponse {
+    // Unix timestamp of creation
+    int64 created = 1;
+    
+    // List of generated images
+    repeated ImageData data = 2;
+    
+    // Model used for generation
+    string model = 3;
+}
+
+// Health check request
+message HealthCheckRequest {}
+
+// Health check response
+message HealthCheckResponse {
+    // Whether the service is healthy
+    bool healthy = 1;
+    
+    // Optional message about health status
+    string message = 2;
+    
+    // Available models
+    repeated string available_models = 3;
+}
+
+// Get info request
+message GetInfoRequest {}
+
+// Get info response
+message GetInfoResponse {
+    // Backend name
+    string name = 1;
+    
+    // Backend version
+    string version = 2;
+    
+    // Supported models
+    repeated ModelInfo models = 3;
+    
+    // Maximum batch size supported
+    int32 max_batch_size = 4;
+}
+
+// Model information
+message ModelInfo {
+    // Model identifier
+    string id = 1;
+    
+    // Human-readable name
+    string name = 2;
+    
+    // Maximum supported width
+    int32 max_width = 3;
+    
+    // Maximum supported height
+    int32 max_height = 4;
+    
+    // Default width
+    int32 default_width = 5;
+    
+    // Default height
+    int32 default_height = 6;
+}
+

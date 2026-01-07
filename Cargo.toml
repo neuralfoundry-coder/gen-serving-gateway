@@ -1,0 +1,78 @@
+[package]
+name = "generative-img-serving"
+version = "0.1.0"
+edition = "2021"
+description = "Rust-based generative image model serving framework"
+license = "MIT"
+
+[features]
+default = []
+grpc = []
+grpc-codegen = ["grpc"]
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# HTTP server
+axum = { version = "0.7", features = ["macros"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors", "trace", "timeout", "fs"] }
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+
+# gRPC
+tonic = "0.10"
+prost = "0.12"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Configuration
+config = "0.14"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Async utilities
+async-trait = "0.1"
+futures = "0.3"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Base64
+base64 = "0.21"
+
+# UUID
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Rate limiting
+governor = "0.6"
+
+# Dashmap for concurrent hashmap
+dashmap = "5.5"
+
+# Parking lot for synchronization
+parking_lot = "0.12"
+
+[build-dependencies]
+tonic-build = "0.10"
+
+[dev-dependencies]
+tokio-test = "0.4"
+wiremock = "0.5"
+tempfile = "3.9"
+
+[[bin]]
+name = "img-serving"
+path = "src/main.rs"
+

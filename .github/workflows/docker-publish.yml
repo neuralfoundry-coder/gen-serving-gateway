@@ -68,7 +68,6 @@ jobs:
           elif [[ "${{ github.ref }}" == refs/heads/main ]] || [[ "${{ github.ref }}" == refs/heads/master ]]; then
             TAGS="${{ env.IMAGE_NAME }}:${{ steps.cargo_version.outputs.version }}"
             TAGS="$TAGS,${{ env.IMAGE_NAME }}:latest"
-            TAGS="$TAGS,${{ env.IMAGE_NAME }}:${{ github.sha }}"
           # Pull request
           else
             TAGS="${{ env.IMAGE_NAME }}:pr-${{ github.event.pull_request.number }}"
